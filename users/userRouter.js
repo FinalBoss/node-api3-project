@@ -1,12 +1,13 @@
 const express = require('express');
 const Users = require('../users/userDb');
+const Posts = require('../posts/postDb')
 
 const router = express.Router();
 
 
-router.post('/', (req, res) => {
+router.post('/', validateUser, (req, res) => {
   // do your magic!
-  Users.get(req.body)
+  Users.insert(req.body)
   .then(usr => {
     res.status(201).json(usr);
   })
@@ -18,9 +19,12 @@ router.post('/', (req, res) => {
   })
 });
 
-router.post('/:id/posts', [validateUserId, validateUser], (req, res) => {
+router.post('/:id/posts', [validateUserId, validatePosts], (req, res) => {
   // do your magic!
-  Users.insert(req.params.id, req.body)
+  const userId = req.params.id;
+  const body = req.body;
+  body.user_id = userId;
+  Posts.insert(body)
   .then(usr => {
    if(usr){
     res.status(200).json(usr);
@@ -30,7 +34,7 @@ router.post('/:id/posts', [validateUserId, validateUser], (req, res) => {
   })
   .catch(err => {
     console.log(err);
-    res.status(500).json({message: 'Error updating the user', err})
+    res.status(500).json({message: 'Error updating the posts', err})
   })
 });
 
@@ -109,8 +113,9 @@ function validateUserId(req, res, next) {
       req.usr = usr;
       next();
     } else {
-      // res.status(404).json({ message: 'does not exist' });
-      next(new Error('does not exist'));
+     
+      res.status(404).json({ message: 'User with this id does not exist' });
+      // next(new Error('does not exist'));
     }
   })
   .catch(err => {
@@ -123,10 +128,26 @@ function validateUserId(req, res, next) {
 function validateUser(req, res, next) {
   // do your magic!
   const body = req.body;
-  !body || body === {} ?
+  if(Object.keys(body).length === 0) {
+   
   res.status(400).json({message: 'Please include request body'})
-  : 
-  next();
+  
+  } if (!body.name){
+    res.status(400).json({message: "Please insert name for body"})
+  } else {
+    next();
+  }
+}
+
+function validatePosts(req, res, next) {
+  const body = req.body;
+  if(Object.keys(body).length === 0){
+    res.status(400).json({message: "Please include request body"})
+  } if(!body.text){
+    res.status(400).json({message: "Please insert text for body"})
+  } else {
+    next();
+  }
 }
 
 
